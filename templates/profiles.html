@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container animate-slide-up">
+    <div class="row">
+        <!-- Profile Form Column -->
+        <div class="col-lg-4 mb-4">
+            <div class="card p-4">
+                <h4 class="fw-bold mb-3"><i class="fa-solid fa-user-plus text-success me-2"></i><span id="formTitle">Add Family Member</span></h4>
+                <form id="profileForm">
+                    <input type="hidden" id="profileId" name="profile_id">
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="name" required placeholder="e.g., Rohan Sharma">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="age" class="form-label">Age (years)</label>
+                            <input type="number" class="form-control" id="age" required min="1" max="120" placeholder="e.g., 28">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="gender" class="form-label">Gender</label>
+                            <select class="form-select" id="gender" required>
+                                <option value="" disabled selected>Select</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="height" class="form-label">Height (cm)</label>
+                            <input type="number" class="form-control" id="height" required min="50" max="250" placeholder="e.g., 172">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="weight" class="form-label">Weight (kg)</label>
+                            <input type="number" step="0.1" class="form-control" id="weight" required min="10" max="300" placeholder="e.g., 68.5">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="activity" class="form-label">Activity Level</label>
+                        <select class="form-select" id="activity" required>
+                            <option value="Sedentary">Sedentary (Little/no exercise)</option>
+                            <option value="Lightly Active">Lightly Active (Exercise 1-3 days/wk)</option>
+                            <option value="Moderately Active">Moderately Active (Exercise 3-5 days/wk)</option>
+                            <option value="Very Active">Very Active (Hard exercise 6-7 days/wk)</option>
+                            <option value="Extra Active">Extra Active (Very hard exercise/physical job)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="diet" class="form-label">Dietary Preference</label>
+                        <select class="form-select" id="diet" required>
+                            <option value="Vegetarian">Vegetarian (Lacto-Veg)</option>
+                            <option value="Vegan">Vegan</option>
+                            <option value="Eggetarian">Eggetarian</option>
+                            <option value="Non-Vegetarian">Non-Vegetarian</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="allergies" class="form-label">Allergies / Special Notes</label>
+                        <input type="text" class="form-control" id="allergies" placeholder="e.g., Peanuts, Lactose intolerant, Gluten-free">
+                        <div class="form-text">Comma-separated values, or leave blank if none.</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">Create Profile</button>
+                        <button type="button" class="btn btn-outline-secondary d-none" id="cancelBtn" onclick="resetProfileForm()">Cancel Edit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Profiles Grid Column -->
+        <div class="col-lg-8">
+            <h3 class="fw-bold mb-4"><i class="fa-solid fa-users text-success me-2"></i>Family Members</h3>
+            
+            {% if not profiles %}
+            <div class="card p-5 text-center">
+                <i class="fa-solid fa-people-group text-muted fs-1 mb-3"></i>
+                <h5>No Profiles Found</h5>
+                <p class="text-muted">Create your first family profile using the form on the left to set up personalized calorie targets and get nutrition advice!</p>
+            </div>
+            {% else %}
+            <div class="row row-cols-1 row-cols-md-2 g-4">
+                {% for p in profiles %}
+                <div class="col">
+                    <div class="card h-100 p-4">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle bg-success-subtle p-3 text-success d-flex align-items-center justify-content-center" style="width: 54px; height: 54px;">
+                                    {% if p.gender == 'Male' %}
+                                    <i class="fa-solid fa-user-tie fs-3"></i>
+                                    {% elif p.gender == 'Female' %}
+                                    <i class="fa-solid fa-user-nurse fs-3"></i>
+                                    {% else %}
+                                    <i class="fa-solid fa-user-circle fs-3"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold mb-0">{{ p.name }}</h5>
+                                    <span class="badge bg-success-subtle text-success small">{{ p.diet_type }}</span>
+                                </div>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-link text-muted p-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fa-solid fa-ellipsis-vertical fs-5"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                    <li>
+                                        <button class="dropdown-item" onclick="editProfile({{ p|tojson }})">
+                                            <i class="fa-solid fa-edit me-1 text-primary"></i> Edit
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button class="dropdown-item" onclick="deleteProfile({{ p.id }})">
+                                            <i class="fa-solid fa-trash me-1 text-danger"></i> Delete
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="row row-cols-2 g-2 mb-3">
+                            <div class="col small"><span class="text-muted">Age:</span> <strong class="text-color-primary">{{ p.age }} yrs</strong></div>
+                            <div class="col small"><span class="text-muted">Gender:</span> <strong class="text-color-primary">{{ p.gender }}</strong></div>
+                            <div class="col small"><span class="text-muted">Height:</span> <strong class="text-color-primary">{{ p.height_cm }} cm</strong></div>
+                            <div class="col small"><span class="text-muted">Weight:</span> <strong class="text-color-primary">{{ p.weight_kg }} kg</strong></div>
+                        </div>
+                        
+                        <hr class="my-2 border-slate">
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-semibold text-muted">Daily Target:</span>
+                                <span class="badge bg-success text-white">{{ p.target_calories }} kcal</span>
+                            </div>
+                            <div class="row text-center g-2 mt-2">
+                                <div class="col">
+                                    <div class="p-2 bg-light rounded shadow-xs" style="font-size: 0.8rem;">
+                                        <div class="text-muted">Protein</div>
+                                        <strong class="text-secondary">{{ p.target_protein }}g</strong>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="p-2 bg-light rounded shadow-xs" style="font-size: 0.8rem;">
+                                        <div class="text-muted">Carbs</div>
+                                        <strong class="text-warning">{{ p.target_carbs }}g</strong>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="p-2 bg-light rounded shadow-xs" style="font-size: 0.8rem;">
+                                        <div class="text-muted">Fat</div>
+                                        <strong class="text-danger">{{ p.target_fat }}g</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if p.allergies %}
+                        <div class="mt-2 small bg-warning-subtle text-warning-emphasis p-2 rounded">
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i><strong>Allergies:</strong> {{ p.allergies }}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mt-auto pt-3 d-grid">
+                            <a href="{{ url_for('main.index', profile_id=p.id) }}" class="btn btn-outline-success btn-sm">
+                                <i class="fa-solid fa-circle-chevron-right me-1"></i> View Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

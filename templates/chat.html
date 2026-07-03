@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container animate-slide-up">
+    <div class="row">
+        <!-- Chat Control / Summary Column -->
+        <div class="col-lg-3 mb-4">
+            <div class="card p-3 mb-3">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-circle-question text-success me-2"></i>Active Chat Profile</h5>
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Currently Chatting As:</label>
+                    <div class="p-3 bg-light rounded border-start border-success border-4">
+                        <h6 class="fw-bold mb-1 text-success">{{ active_profile.name }}</h6>
+                        <span class="small text-muted">{{ active_profile.gender }}, {{ active_profile.age }} yrs</span><br>
+                        <span class="badge bg-secondary-subtle text-secondary mt-1">{{ active_profile.diet_type }}</span>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-danger btn-sm" id="clearChatBtn" onclick="clearActiveChat({{ active_profile.id }})">
+                        <i class="fa-solid fa-trash-can me-1"></i> Clear Chat History
+                    </button>
+                    <a href="{{ url_for('main.profiles_page') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fa-solid fa-users me-1"></i> Switch Family Member
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Quick Prompts Card -->
+            <div class="card p-3">
+                <h6 class="fw-bold mb-2 text-muted small"><i class="fa-solid fa-lightbulb text-warning me-2"></i>Quick Questions</h6>
+                <div class="d-flex flex-column gap-2" id="quickPromptsList">
+                    <button class="btn btn-light btn-sm text-start py-2 small shadow-xs border-light quick-prompt-btn" 
+                            data-prompt="What are some high-protein vegetarian Indian breakfast options?">
+                        🍳 High protein veg breakfast
+                    </button>
+                    <button class="btn btn-light btn-sm text-start py-2 small shadow-xs border-light quick-prompt-btn" 
+                            data-prompt="Suggest some healthy local swaps for exotic seeds like Chia or Quinoa.">
+                        🌱 Indian local superfood swaps
+                    </button>
+                    <button class="btn btn-light btn-sm text-start py-2 small shadow-xs border-light quick-prompt-btn" 
+                            data-prompt="I have a sweet tooth. How can I manage sugar cravings mindfully?">
+                        🍫 Managing sugar cravings
+                    </button>
+                    <button class="btn btn-light btn-sm text-start py-2 small shadow-xs border-light quick-prompt-btn" 
+                            data-prompt="Help me design a healthy, macro-balanced North/South Indian dinner recipe.">
+                        🍲 Healthy dinner recipe
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chat Area Column -->
+        <div class="col-lg-9">
+            <div class="card p-3 shadow-md border-0" style="height: 600px; display: flex; flex-direction: column;">
+                <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-robot text-success fs-4 animate-pulse"></i>
+                        <div>
+                            <h5 class="fw-bold mb-0 text-success">Gemini Nutritionist</h5>
+                            <small class="text-muted">Online • Powered by Gemini AI</small>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="badge bg-success-subtle text-success">Indian Diet Expert</span>
+                    </div>
+                </div>
+                
+                <!-- Messages Box -->
+                <div class="chat-container d-flex flex-column flex-grow-1" id="chatBox">
+                    {% if not chat_history %}
+                    <div class="text-center my-auto p-5 text-muted" id="chatEmptyState">
+                        <i class="fa-solid fa-comments text-success fs-1 mb-3 animate-pulse"></i>
+                        <h5>Start Your Consultation</h5>
+                        <p class="small">Ask me anything about calories, balanced macros, regional recipes, ingredient swaps, or festival food alternatives. I have your profile context ({{ active_profile.name }}, {{ active_profile.diet_type }}) ready to provide personalized suggestions!</p>
+                    </div>
+                    {% else %}
+                        {% for chat in chat_history %}
+                        <div class="chat-bubble {{ 'user align-self-end' if chat.role == 'user' else 'agent align-self-start' }}">
+                            {{ chat.message | replace('\n', '<br>') | safe }}
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <!-- Typing indicator placeholder -->
+                    <div class="typing-indicator d-none align-self-start" id="chatTypingIndicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+                
+                <!-- Chat Input Form -->
+                <form id="chatForm" class="mt-2">
+                    <input type="hidden" id="chatProfileId" value="{{ active_profile.id }}">
+                    <div class="input-group input-group-lg">
+                        <input type="text" class="form-control fs-6" id="chatMessageInput" placeholder="Type your nutrition question here... (e.g., Is sattu good for weight loss?)" required autocomplete="off">
+                        <button type="submit" class="btn btn-primary px-4" id="chatSendBtn">
+                            <i class="fa-solid fa-paper-plane fs-5"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Scroll chat to bottom on load
+    document.addEventListener("DOMContentLoaded", function() {
+        const chatBox = document.getElementById("chatBox");
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+</script>
+{% endblock %}

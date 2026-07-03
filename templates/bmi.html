@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container animate-slide-up">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card p-4 mb-4">
+                <h3 class="fw-bold mb-4 text-center"><i class="fa-solid fa-calculator text-success me-2"></i>BMI & Health Calculator</h3>
+                
+                <!-- Profile Pre-fill (if profiles exist) -->
+                {% if profiles %}
+                <div class="mb-4 p-3 bg-light rounded d-flex align-items-center justify-content-between">
+                    <div>
+                        <i class="fa-solid fa-circle-info text-success me-2"></i>
+                        <span class="small text-muted">Select a profile to autofill metrics:</span>
+                    </div>
+                    <select class="form-select form-select-sm w-auto" id="bmiAutofillSelect">
+                        <option value="" selected>-- Manual Input --</option>
+                        {% for p in profiles %}
+                        <option value="" data-weight="{{ p.weight_kg }}" data-height="{{ p.height_cm }}">{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                
+                <!-- Input Form -->
+                <form id="bmiForm">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="bmiWeight" class="form-label fw-semibold">Weight (kg)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fa-solid fa-weight-scale"></i></span>
+                                <input type="number" step="0.1" class="form-control form-control-lg" id="bmiWeight" required min="10" max="300" placeholder="e.g., 70">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="bmiHeight" class="form-label fw-semibold">Height (cm)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fa-solid fa-ruler-vertical"></i></span>
+                                <input type="number" class="form-control form-control-lg" id="bmiHeight" required min="50" max="250" placeholder="e.g., 175">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary btn-lg px-5">Calculate BMI</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Result Panel (Initially Hidden) -->
+            <div class="card p-4 d-none animate-slide-up" id="bmiResultCard">
+                <div class="text-center mb-4">
+                    <h5 class="text-muted text-uppercase tracking-wider mb-1">Your BMI Score</h5>
+                    <h1 class="display-3 fw-bold text-success mb-0" id="bmiValue">22.4</h1>
+                    <span class="badge px-3 py-2 fs-6 mt-2" id="bmiCategoryBadge">Normal weight</span>
+                </div>
+                
+                <!-- Segmented BMI Range Visual Bar -->
+                <div class="my-4">
+                    <div class="d-flex justify-content-between text-muted small mb-1 px-1">
+                        <span>Underweight (&lt;18.5)</span>
+                        <span>Normal (18.5-24.9)</span>
+                        <span>Overweight (25-29.9)</span>
+                        <span>Obese (&ge;30)</span>
+                    </div>
+                    <div class="bmi-bar-container" style="background: linear-gradient(to right, #ffd166 0%, #ffd166 30%, #06d6a0 30%, #06d6a0 60%, #f77f00 60%, #f77f00 80%, #d62828 80%, #d62828 100%);">
+                        <div class="bmi-indicator" id="bmiIndicator" style="left: 50%;"></div>
+                    </div>
+                </div>
+                
+                <!-- Diet Tip Card -->
+                <div class="p-3 bg-light rounded mt-4">
+                    <h6 class="fw-bold"><i class="fa-solid fa-lightbulb text-warning me-2"></i>Dietary & Health Suggestion:</h6>
+                    <p class="text-muted mb-0" id="bmiTipText">Focus on general cardiovascular fitness and eating a colorful variety of whole grains, pulses, and lean proteins.</p>
+                </div>
+                
+                <!-- Warning/Advice Disclaimer -->
+                <div class="mt-4 text-center">
+                    <small class="text-muted font-italic">
+                        *Note: BMI is a general indicator and does not account for muscle mass vs body fat. Consult a medical professional for a detailed check.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

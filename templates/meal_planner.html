@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container animate-slide-up">
+    <div class="row">
+        <!-- Meal Plan Control Panel -->
+        <div class="col-lg-4 mb-4">
+            <div class="card p-4 mb-4">
+                <h4 class="fw-bold mb-3"><i class="fa-solid fa-wand-magic-sparkles text-success me-2"></i>Generate Meal Plan</h4>
+                
+                <form id="mealPlanForm">
+                    <input type="hidden" name="profile_id" value="{{ active_profile.id }}">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Active Family Member</label>
+                        <div class="p-3 bg-light rounded d-flex align-items-center justify-content-between">
+                            <strong class="text-success"><i class="fa-solid fa-user me-2"></i>{{ active_profile.name }}</strong>
+                            <span class="badge bg-secondary-subtle text-secondary">{{ active_profile.diet_type }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="goal" class="form-label">Dietary Goal</label>
+                        <select class="form-select" id="goal" required>
+                            <option value="Weight Loss" selected>Weight Loss (Caloric Deficit)</option>
+                            <option value="Weight Gain">Weight Gain (Caloric Surplus)</option>
+                            <option value="Maintenance">Maintenance (Balanced Intake)</option>
+                            <option value="Healthy Living">Healthy Living (Nutrient Dense/Stamina)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="duration" class="form-label">Plan Duration</label>
+                        <select class="form-select" id="duration" required>
+                            <option value="daily" selected>Single Day Plan</option>
+                            <option value="weekly">Full 7-Day Plan</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100 py-2 btn-lg" id="generatePlanBtn">
+                        <i class="fa-solid fa-gears me-1"></i> Generate Plan with AI
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Past Plans List -->
+            <div class="card p-4">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-history text-muted me-2"></i>Saved Plans</h5>
+                {% if not meal_plans %}
+                <p class="text-muted small mb-0">No past plans generated for {{ active_profile.name }} yet.</p>
+                {% else %}
+                <div class="list-group list-group-flush" style="max-height: 250px; overflow-y: auto;">
+                    {% for plan in meal_plans %}
+                    {% set plan_obj = plan.plan_data|from_json %}
+                    <button class="list-group-item list-group-item-action py-2 px-1 text-start border-0 past-plan-item" 
+                            data-plan="{{ plan.plan_data }}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-semibold text-truncate small" style="max-width: 70%;">{{ plan_obj.title or plan.goal }}</span>
+                            <span class="badge bg-success-subtle text-success small" style="font-size: 0.7rem;">{{ plan.duration }}</span>
+                        </div>
+                        <small class="text-muted" style="font-size: 0.75rem;">{{ plan.created_at.split(' ')[0] }}</small>
+                    </button>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Meal Plan View Panel -->
+        <div class="col-lg-8">
+            <!-- Loading Indicator -->
+            <div class="card p-5 text-center d-none" id="mealPlanLoading">
+                <div class="spinner-border text-success fs-3 mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5 class="fw-bold text-success animate-pulse">Consulting AI Nutrition Agent...</h5>
+                <p class="text-muted mb-0">Designing a balanced, healthy, and authentic Indian meal plan customized to your goal and profile...</p>
+            </div>
+            
+            <!-- Plan Display Area (Populated dynamically) -->
+            <div class="card p-4 d-none" id="mealPlanResult">
+                <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-4">
+                    <div>
+                        <h3 class="fw-bold text-success mb-1" id="planTitle">Custom Meal Plan</h3>
+                        <span class="text-muted small" id="planSub">Generated for {{ active_profile.name }}</span>
+                    </div>
+                    <div class="text-end">
+                        <div class="fs-4 fw-bold text-primary" id="planCalTarget">1800 kcal</div>
+                        <small class="text-muted">Daily Target</small>
+                    </div>
+                </div>
+                
+                <!-- Macro breakdown summary cards -->
+                <div class="row text-center g-3 mb-4">
+                    <div class="col-4">
+                        <div class="p-3 bg-light rounded border-start border-primary border-4">
+                            <div class="text-muted small">Protein</div>
+                            <h4 class="fw-bold text-primary mb-0" id="planProtein">75g</h4>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-3 bg-light rounded border-start border-warning border-4">
+                            <div class="text-muted small">Carbohydrates</div>
+                            <h4 class="fw-bold text-warning mb-0" id="planCarbs">200g</h4>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-3 bg-light rounded border-start border-danger border-4">
+                            <div class="text-muted small">Fat</div>
+                            <h4 class="fw-bold text-danger mb-0" id="planFat">50g</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Weekly Tabs (if weekly, shown dynamically) -->
+                <ul class="nav nav-pills mb-4 d-none" id="weeklyTabs" role="tablist"></ul>
+                
+                <!-- Daily Meal Layout -->
+                <div class="tab-content" id="planMealsContent">
+                    <div class="row row-cols-1 row-cols-md-2 g-3" id="mealsGrid">
+                        <!-- Breakfast -->
+                        <div class="col">
+                            <div class="card h-100 p-3 shadow-sm border-light">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-success-subtle text-success fw-semibold"><i class="fa-solid fa-mug-saucer me-1"></i>Breakfast</span>
+                                    <span class="text-muted small" id="bfCalories">300 kcal</span>
+                                </div>
+                                <h5 class="fw-bold" id="bfName">Oats Veggie Upma</h5>
+                                <p class="small text-muted mb-2" id="bfDescription">Preparation with roasted oats, onions, carrots, and curry leaves.</p>
+                                <div class="mt-auto small border-top pt-2 d-flex justify-content-between text-muted" style="font-size: 0.75rem;">
+                                    <span>P: <strong id="bfP">10g</strong></span>
+                                    <span>C: <strong id="bfC">45g</strong></span>
+                                    <span>F: <strong id="bfF">6g</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Lunch -->
+                        <div class="col">
+                            <div class="card h-100 p-3 shadow-sm border-light">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-primary-subtle text-primary fw-semibold"><i class="fa-solid fa-bowl-rice me-1"></i>Lunch</span>
+                                    <span class="text-muted small" id="lhCalories">600 kcal</span>
+                                </div>
+                                <h5 class="fw-bold" id="lhName">Roti, Dal and Paneer Sabzi</h5>
+                                <p class="small text-muted mb-2" id="lhDescription">2 multi-grain rotis served with mixed dal fry and green salad.</p>
+                                <div class="mt-auto small border-top pt-2 d-flex justify-content-between text-muted" style="font-size: 0.75rem;">
+                                    <span>P: <strong id="lhP">25g</strong></span>
+                                    <span>C: <strong id="lhC">70g</strong></span>
+                                    <span>F: <strong id="lhF">16g</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Snack -->
+                        <div class="col">
+                            <div class="card h-100 p-3 shadow-sm border-light">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-warning-subtle text-warning-emphasis fw-semibold"><i class="fa-solid fa-cookie me-1"></i>Snack</span>
+                                    <span class="text-muted small" id="skCalories">150 kcal</span>
+                                </div>
+                                <h5 class="fw-bold" id="skName">Roasted Foxnuts (Makhana)</h5>
+                                <p class="small text-muted mb-2" id="skDescription">1 bowl dry roasted makhana with pinch of rock salt and black pepper.</p>
+                                <div class="mt-auto small border-top pt-2 d-flex justify-content-between text-muted" style="font-size: 0.75rem;">
+                                    <span>P: <strong id="skP">3g</strong></span>
+                                    <span>C: <strong id="skC">20g</strong></span>
+                                    <span>F: <strong id="skF">4g</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Dinner -->
+                        <div class="col">
+                            <div class="card h-100 p-3 shadow-sm border-light">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-danger-subtle text-danger fw-semibold"><i class="fa-solid fa-utensils me-1"></i>Dinner</span>
+                                    <span class="text-muted small" id="dnCalories">400 kcal</span>
+                                </div>
+                                <h5 class="fw-bold" id="dnName">Moong Dal Cheela</h5>
+                                <p class="small text-muted mb-2" id="dnDescription">2 light moong dal crepes stuffed with grated carrots and coriander.</p>
+                                <div class="mt-auto small border-top pt-2 d-flex justify-content-between text-muted" style="font-size: 0.75rem;">
+                                    <span>P: <strong id="dnP">15g</strong></span>
+                                    <span>C: <strong id="dnC">55g</strong></span>
+                                    <span>F: <strong id="dnF">8g</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Medical disclaimer block -->
+                <div class="mt-4 p-3 bg-light rounded text-center" style="font-size: 0.8rem;">
+                    <span class="text-muted">
+                        <strong>Disclaimer:</strong> This meal plan was generated by an AI Nutrition Agent for general guidance and educational purposes. Consult a physician or registered dietitian for specific dietary therapies.
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Empty state (Initial view before planning) -->
+            <div class="card p-5 text-center" id="mealPlanEmpty">
+                <i class="fa-solid fa-calendar-days text-muted fs-1 mb-3"></i>
+                <h5>No Active Plan Selected</h5>
+                <p class="text-muted">Generate a personalized Indian meal plan with Gemini AI by selecting your goal and clicking "Generate Plan with AI", or click on a saved plan from the sidebar.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

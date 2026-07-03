@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container animate-slide-up">
+    <!-- Dashboard Header -->
+    <div class="row align-items-center mb-4">
+        <div class="col-md-8">
+            <h2 class="fw-bold mb-1">Welcome back, <span class="text-success">{{ active_profile.name }}</span>!</h2>
+            <p class="text-muted mb-0">Here is your family nutrition status, calorie logs, and personalized recommendations.</p>
+        </div>
+        <div class="col-md-4 text-md-end mt-2 mt-md-0">
+            <span class="badge bg-success px-3 py-2 fs-6 shadow-xs"><i class="fa-solid fa-fire me-1"></i>Daily Budget: {{ active_profile.target_calories }} kcal</span>
+        </div>
+    </div>
+    
+    <!-- Row 1: Profile & BMI Summary & Active Meal Plan -->
+    <div class="row mb-4">
+        <!-- Profile and BMI Summary Card -->
+        <div class="col-lg-6 mb-4 mb-lg-0">
+            <div class="card p-4 h-100">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-heart-pulse text-success me-2"></i>Health Metrics Summary</h5>
+                <div class="row align-items-center g-3">
+                    <div class="col-sm-5 text-center border-end-sm">
+                        {% set height_m = active_profile.height_cm / 100 %}
+                        {% set bmi = active_profile.weight_kg / (height_m * height_m) %}
+                        {% set bmi_rounded = (bmi * 10)|round/10 %}
+                        
+                        <div class="display-4 fw-bold {% if bmi_rounded < 18.5 or bmi_rounded >= 25 %}text-warning{% else %}text-success{% endif %} mb-0">{{ bmi_rounded }}</div>
+                        <small class="text-muted uppercase fw-semibold">Current BMI</small>
+                        <div class="mt-2">
+                            {% if bmi_rounded < 18.5 %}
+                            <span class="badge bg-warning text-white">Underweight</span>
+                            {% elif bmi_rounded < 24.9 %}
+                            <span class="badge bg-success text-white">Normal Weight</span>
+                            {% elif bmi_rounded < 29.9 %}
+                            <span class="badge bg-warning text-white">Overweight</span>
+                            {% else %}
+                            <span class="badge bg-danger text-white">Obese</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-sm-7 ps-sm-4">
+                        <div class="mb-2">
+                            <span class="text-muted small">Height / Weight:</span><br>
+                            <strong>{{ active_profile.height_cm }} cm / {{ active_profile.weight_kg }} kg</strong>
+                        </div>
+                        <div class="mb-2">
+                            <span class="text-muted small">Physical Activity:</span><br>
+                            <strong>{{ active_profile.activity_level }}</strong>
+                        </div>
+                        <div>
+                            <span class="text-muted small">Diet Preference:</span><br>
+                            <strong>{{ active_profile.diet_type }}</strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 pt-2 border-top">
+                    <a href="{{ url_for('main.bmi_page') }}" class="btn btn-outline-success btn-sm w-100">
+                        <i class="fa-solid fa-expand-arrows-alt me-1"></i> Open Detailed BMI Scale
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- AI Food Tracker (Quick Log) -->
+        <div class="col-lg-6">
+            <div class="card p-4 h-100">
+                <h5 class="fw-bold mb-1"><i class="fa-solid fa-keyboard text-success me-2"></i>AI Natural Food Logger</h5>
+                <p class="text-muted small mb-3">Type what you ate in plain English. Gemini AI will estimate the calories and update your charts instantly!</p>
+                
+                <form id="quickFoodLogForm">
+                    <input type="hidden" id="logProfileId" value="{{ active_profile.id }}">
+                    <div class="mb-3">
+                        <textarea class="form-control" id="foodDescription" rows="3" required placeholder="e.g., I ate 2 whole wheat chapatis, a bowl of dal, 100g of paneer bhurji and cucumber salad for lunch."></textarea>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button type="submit" class="btn btn-primary" id="logFoodBtn">
+                            <i class="fa-solid fa-calculator me-1"></i> Parse & Log Intake
+                        </button>
+                        <div class="spinner-border spinner-border-sm text-success d-none" id="logSpinner" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- Instant parse response panel -->
+                <div class="mt-3 p-2 bg-light rounded d-none" id="logResultPanel" style="font-size: 0.8rem;">
+                    <div class="fw-bold text-success mb-1"><i class="fa-solid fa-check-circle me-1"></i>Logged Food analysis:</div>
+                    <span id="logAnalysisText">Calories: 350 kcal | Protein: 12g</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Row 2: Progress Meters & Calorie Charts -->
+    <div class="row mb-4">
+        <!-- Daily Progress Bars -->
+        <div class="col-lg-5 mb-4 mb-lg-0">
+            <div class="card p-4 h-100">
+                <h5 class="fw-bold mb-4"><i class="fa-solid fa-gauge-high text-success me-2"></i>Intake Progress (Today)</h5>
+                
+                {% set today_log = logs[-1] if logs and logs[-1]['date'] == today else None %}
+                {% set cur_cal = logs[-1]['calories'] if logs else 0 %}
+                {% set cur_pro = logs[-1]['protein'] if logs else 0 %}
+                {% set cur_carb = logs[-1]['carbs'] if logs else 0 %}
+                {% set cur_fat = logs[-1]['fat'] if logs else 0 %}
+                
+                <!-- Calorie progress -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fw-semibold">Calories</span>
+                        <span><strong id="dashCalVal">{{ cur_cal }}</strong> / {{ active_profile.target_calories }} kcal</span>
+                    </div>
+                    <div class="macro-progress">
+                        {% set cal_pct = (cur_cal / active_profile.target_calories * 100) if active_profile.target_calories > 0 else 0 %}
+                        <div class="macro-bar calories" id="dashCalBar" style="width: {{ [cal_pct, 100]|min }}%;"></div>
+                    </div>
+                </div>
+                
+                <!-- Protein progress -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fw-semibold small">Protein (Target: {{ active_profile.target_protein }}g)</span>
+                        <span class="small"><strong id="dashProVal">{{ cur_pro }}</strong>g</span>
+                    </div>
+                    <div class="macro-progress" style="height: 6px;">
+                        {% set pro_pct = (cur_pro / active_profile.target_protein * 100) if active_profile.target_protein > 0 else 0 %}
+                        <div class="macro-bar protein" id="dashProBar" style="width: {{ [pro_pct, 100]|min }}%;"></div>
+                    </div>
+                </div>
+                
+                <!-- Carbs progress -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fw-semibold small">Carbs (Target: {{ active_profile.target_carbs }}g)</span>
+                        <span class="small"><strong id="dashCarbVal">{{ cur_carb }}</strong>g</span>
+                    </div>
+                    <div class="macro-progress" style="height: 6px;">
+                        {% set carb_pct = (cur_carb / active_profile.target_carbs * 100) if active_profile.target_carbs > 0 else 0 %}
+                        <div class="macro-bar carbs" id="dashCarbBar" style="width: {{ [carb_pct, 100]|min }}%;"></div>
+                    </div>
+                </div>
+                
+                <!-- Fat progress -->
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fw-semibold small">Fat (Target: {{ active_profile.target_fat }}g)</span>
+                        <span class="small"><strong id="dashFatVal">{{ cur_fat }}</strong>g</span>
+                    </div>
+                    <div class="macro-progress" style="height: 6px;">
+                        {% set fat_pct = (cur_fat / active_profile.target_fat * 100) if active_profile.target_fat > 0 else 0 %}
+                        <div class="macro-bar fat" id="dashFatBar" style="width: {{ [fat_pct, 100]|min }}%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 7-Day Chart -->
+        <div class="col-lg-7">
+            <div class="card p-4 h-100">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-chart-area text-success me-2"></i>7-Day Calorie Tracker</h5>
+                <div style="position: relative; height: 260px; width: 100%;">
+                    <canvas id="caloriesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Row 3: Active Meal Plan Preview -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0"><i class="fa-solid fa-calendar-day text-success me-2"></i>Active Meal Plan Preview</h5>
+                    <a href="{{ url_for('main.meal_planner_page', profile_id=active_profile.id) }}" class="btn btn-outline-success btn-sm">
+                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Edit Plan
+                    </a>
+                </div>
+                
+                {% if not latest_meal_plan %}
+                <div class="text-center p-4 bg-light rounded">
+                    <p class="text-muted mb-0">No active meal plan generated yet. Generate your plan in the <strong>Meal Planner</strong> tab to see it here!</p>
+                </div>
+                {% else %}
+                {% set plan = latest_meal_plan.plan_data|from_json %}
+                <div class="row row-cols-1 row-cols-md-4 g-3">
+                    {% set meals = plan.days[0].meals if plan.days else {} %}
+                    {% if meals %}
+                        {% for meal_key, meal in meals.items() %}
+                        <div class="col">
+                            <div class="p-3 bg-light rounded h-100 border-top border-3 {% if meal_key == 'breakfast' %}border-success{% elif meal_key == 'lunch' %}border-primary{% elif meal_key == 'snack' %}border-warning{% else %}border-danger{% endif %}">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-bold text-uppercase small text-muted">{{ meal_key }}</span>
+                                    <span class="badge bg-secondary-subtle text-secondary small">{{ meal.calories }} kcal</span>
+                                </div>
+                                <h6 class="fw-bold text-truncate mb-1">{{ meal.name }}</h6>
+                                <p class="text-muted small mb-0 text-truncate-2" style="font-size: 0.75rem;">{{ meal.description }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Injected variables for Chart.js rendering on load
+    const profileId = {{ active_profile.id }};
+    document.addEventListener("DOMContentLoaded", function() {
+        // Initialize dashboard charts
+        initDashboardCharts(profileId);
+    });
+</script>
+{% endblock %}

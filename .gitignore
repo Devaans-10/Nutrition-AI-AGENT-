@@ -1,0 +1,31 @@
+# Environment configurations (Contains sensitive API keys)
+.env
+
+# Python Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local Database Files
+*.db
+*.db-journal
+*.sqlite
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# IDE Configurations
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
