@@ -212,7 +212,8 @@ def generate_meal_plan():
         plan = gemini.generate_meal_plan(profile_data, goal, duration)
         
         # Save meal plan to database as a stringified JSON
-        db.add_meal_plan(profile_id, goal, duration, json_data:=json.dumps(plan))
+        json_data = json.dumps(plan)
+        db.add_meal_plan(profile_id, goal, duration, json_data)
         
         return jsonify({
             'success': True,
