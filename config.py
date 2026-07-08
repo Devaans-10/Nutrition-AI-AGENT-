@@ -11,6 +11,9 @@ class Config:
     _db_url = os.environ.get('DATABASE_URL', '')
     if _db_url.startswith('sqlite:///'):
         DATABASE = _db_url.replace('sqlite:///', '')
+    elif os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('RAILWAY_PROJECT_ID'):
+        # Railway containers use /tmp for writable storage
+        DATABASE = '/tmp/nutrition_agent.db'
     elif os.environ.get('VERCEL') == '1':
         # Vercel serverless functions have a read-only filesystem, except for /tmp
         DATABASE = '/tmp/nutrition_agent.db'
