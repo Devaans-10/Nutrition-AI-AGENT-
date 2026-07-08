@@ -6,7 +6,7 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'default-nutrition-agent-key-9982')
-    
+
     # Read database path from DATABASE_URL if available, otherwise default to local path
     _db_url = os.environ.get('DATABASE_URL', '')
     if _db_url.startswith('sqlite:///'):
@@ -16,9 +16,12 @@ class Config:
         DATABASE = '/tmp/nutrition_agent.db'
     else:
         DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nutrition_agent.db')
-        
-    GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', '')
-    GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-3.5-flash')
+
+    # IBM watsonx.ai Configuration
+    WATSONX_API_KEY  = os.environ.get('WATSONX_API_KEY', '')
+    WATSONX_PROJECT_ID = os.environ.get('WATSONX_PROJECT_ID', '')
+    WATSONX_URL      = os.environ.get('WATSONX_URL', 'https://us-south.ml.cloud.ibm.com')
+    WATSONX_MODEL    = os.environ.get('WATSONX_MODEL', 'ibm/granite-13b-chat-v2')
 
     # system prompt for the Gemini model
     AGENT_INSTRUCTIONS = """
