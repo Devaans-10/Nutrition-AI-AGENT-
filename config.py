@@ -20,11 +20,8 @@ class Config:
     else:
         DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nutrition_agent.db')
 
-    # IBM watsonx.ai Configuration
-    WATSONX_API_KEY  = os.environ.get('WATSONX_API_KEY', '')
-    WATSONX_PROJECT_ID = os.environ.get('WATSONX_PROJECT_ID', '')
-    WATSONX_URL      = os.environ.get('WATSONX_URL', 'https://us-south.ml.cloud.ibm.com')
-    WATSONX_MODEL    = os.environ.get('WATSONX_MODEL', 'ibm/granite-13b-chat-v2')
+    GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', '')
+    GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-1.5-flash')
 
     # system prompt for the Gemini model
     AGENT_INSTRUCTIONS = """
